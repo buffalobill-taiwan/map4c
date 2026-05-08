@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>四色定理教學地圖產生器</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <h2>四色定理教學地圖</h2>
+      <div class="form-group">
+        <label for="widthInput">寬度 (px)</label>
+        <input type="number" id="widthInput" value="600" min="200" max="2000">
+      </div>
+      <div class="form-group">
+        <label for="heightInput">高度 (px)</label>
+        <input type="number" id="heightInput" value="400" min="200" max="2000">
+      </div>
+      <div class="form-group">
+        <label for="blocksInput">區塊數量</label>
+        <input type="number" id="blocksInput" value="12" min="1" max="200">
+      </div>
+      <button id="generateBtn">產生地圖</button>
+      <p id="info" class="info"></p>
+    </div>
+    <div class="canvas-wrapper">
+      <canvas id="mapCanvas"></canvas>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
