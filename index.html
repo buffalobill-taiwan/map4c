@@ -23,6 +23,16 @@
         <input type="number" id="blocksInput" value="12" min="1" max="200">
       </div>
       <button id="generateBtn">產生地圖</button>
+      <div class="color-picker">
+        <div class="color-label">選擇顏色</div>
+        <div class="color-btns" id="colorBtns">
+          <button class="color-btn" data-idx="0" style="background:#e74c3c" title="紅"></button>
+          <button class="color-btn" data-idx="1" style="background:#3498db" title="藍"></button>
+          <button class="color-btn" data-idx="2" style="background:#27ae60" title="綠"></button>
+          <button class="color-btn" data-idx="3" style="background:#f1c40f" title="黃"></button>
+        </div>
+      </div>
+      <button id="resetBtn">重設著色</button>
       <p id="info" class="info"></p>
     </div>
     <div class="canvas-wrapper">

@@ -4,17 +4,39 @@ const widthInput = document.getElementById('widthInput');
 const heightInput = document.getElementById('heightInput');
 const blocksInput = document.getElementById('blocksInput');
 const generateBtn = document.getElementById('generateBtn');
+const resetBtn = document.getElementById('resetBtn');
 const info = document.getElementById('info');
+const colorBtns = document.querySelectorAll('.color-btn');
 
 const PAD = 20;
 const LINE_W = 1.8;
 const CURVE_FACTOR = 0.22;
+const COLORS = ['red', 'blue', 'green', 'yellow'];
+const COLOR_MAP = { red: '#e74c3c', blue: '#3498db', green: '#27ae60', yellow: '#f1c40f' };
+
+let currentCells = [];
+let cellColors = [];
+let adjList = [];
+let selectedColor = null;
+let mapW = 0, mapH = 0;
 
 function pt(x, y) { return { x, y }; }
 function sub(a, b) { return pt(a.x - b.x, a.y - b.y); }
-function add(a, b) { return pt(a.x + b.x, a.y + b.y); }
 function len(a) { return Math.sqrt(a.x * a.x + a.y * a.y); }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+function seededRandom(key) {
+  return (hash(key + 'curve') % 10000) / 10000;
+}
 
 function generateSeeds(W, H, N) {
   const minDist = Math.sqrt(W * H * 0.35 / N);
@@ -96,57 +118,128 @@ function isOnBoundary(a, b, W, H) {
   return onTop || onBottom || onLeft || onRight;
 }
 
-function drawMap(cells, W, H) {
+function drawEdge(a, b, bound) {
+  ctx.beginPath();
+  ctx.moveTo(a.x + PAD, a.y + PAD);
+
+  if (bound) {
+    ctx.lineTo(b.x + PAD, b.y + PAD);
+  } else {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const edgeLen = len(sub(b, a));
+    const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
+    if (maxOff > 2) {
+      const nx = -dy / edgeLen, ny = dx / edgeLen;
+      const r = seededRandom(edgeKey(a, b));
+      const off = (r * 2 - 1) * maxOff;
+      const cx = clamp((a.x + b.x) / 2 + nx * off, 0, mapW) + PAD;
+      const cy = clamp((a.y + b.y) / 2 + ny * off, 0, mapH) + PAD;
+      ctx.quadraticCurveTo(cx, cy, b.x + PAD, b.y + PAD);
+    } else {
+      ctx.lineTo(b.x + PAD, b.y + PAD);
+    }
+  }
+  ctx.stroke();
+}
+
+function drawFull() {
   const dpr = window.devicePixelRatio || 1;
-  canvas.style.width = (W + PAD * 2) + 'px';
-  canvas.style.height = (H + PAD * 2) + 'px';
-  canvas.width = (W + PAD * 2) * dpr;
-  canvas.height = (H + PAD * 2) * dpr;
+  canvas.style.width = (mapW + PAD * 2) + 'px';
+  canvas.style.height = (mapH + PAD * 2) + 'px';
+  canvas.width = (mapW + PAD * 2) * dpr;
+  canvas.height = (mapH + PAD * 2) * dpr;
   ctx.scale(dpr, dpr);
 
   ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, W + PAD * 2, H + PAD * 2);
+  ctx.fillRect(0, 0, mapW + PAD * 2, mapH + PAD * 2);
+
+  for (let i = 0; i < currentCells.length; i++) {
+    if (cellColors[i]) {
+      ctx.fillStyle = COLOR_MAP[cellColors[i]];
+      ctx.beginPath();
+      const poly = currentCells[i];
+      ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
+      for (let j = 1; j < poly.length; j++) {
+        ctx.lineTo(poly[j].x + PAD, poly[j].y + PAD);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   ctx.strokeStyle = '#000';
   ctx.lineWidth = LINE_W;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
   const drawn = new Set();
-
-  for (const cell of cells) {
+  for (const cell of currentCells) {
     for (let i = 0; i < cell.length; i++) {
       const a = cell[i];
       const b = cell[(i + 1) % cell.length];
       const key = edgeKey(a, b);
       if (drawn.has(key)) continue;
       drawn.add(key);
-
-      const bound = isOnBoundary(a, b, W, H);
-      const ta = pt(a.x + PAD, a.y + PAD);
-      const tb = pt(b.x + PAD, b.y + PAD);
-
-      ctx.beginPath();
-      ctx.moveTo(ta.x, ta.y);
-
-      if (bound) {
-        ctx.lineTo(tb.x, tb.y);
-      } else {
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const edgeLen = len(sub(b, a));
-        const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
-        if (maxOff > 2) {
-          const nx = -dy / edgeLen, ny = dx / edgeLen;
-          const off = (Math.random() * 2 - 1) * maxOff;
-          const cx = clamp((a.x + b.x) / 2 + nx * off, 0, W) + PAD;
-          const cy = clamp((a.y + b.y) / 2 + ny * off, 0, H) + PAD;
-          ctx.quadraticCurveTo(cx, cy, tb.x, tb.y);
-        } else {
-          ctx.lineTo(tb.x, tb.y);
-        }
-      }
-      ctx.stroke();
+      drawEdge(a, b, isOnBoundary(a, b, mapW, mapH));
     }
   }
+}
+
+function handleCanvasClick(e) {
+  if (selectedColor === null || currentCells.length === 0) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const sx = (mapW + PAD * 2) / rect.width;
+  const sy = (mapH + PAD * 2) / rect.height;
+  const mx = (e.clientX - rect.left) * sx;
+  const my = (e.clientY - rect.top) * sy;
+
+  const colorName = COLORS[selectedColor];
+
+  for (let i = 0; i < currentCells.length; i++) {
+    ctx.beginPath();
+    const poly = currentCells[i];
+    ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
+    for (let j = 1; j < poly.length; j++) {
+      ctx.lineTo(poly[j].x + PAD, poly[j].y + PAD);
+    }
+    ctx.closePath();
+
+    if (ctx.isPointInPath(mx, my)) {
+      if (cellColors[i] === colorName) return;
+
+      let conflict = false;
+      for (const n of adjList[i]) {
+        if (cellColors[n] === colorName) {
+          conflict = true;
+          break;
+        }
+      }
+
+      if (conflict) {
+        info.textContent = '⚠ 相鄰區塊已有相同顏色，無法著色';
+        return;
+      }
+
+      cellColors[i] = colorName;
+      info.textContent = '';
+      drawFull();
+      return;
+    }
+  }
+}
+
+function selectColor(idx) {
+  selectedColor = selectedColor === idx ? null : idx;
+  colorBtns.forEach((btn, i) => btn.classList.toggle('active', i === selectedColor));
+}
+
+function resetColors() {
+  cellColors.fill(null);
+  selectedColor = null;
+  colorBtns.forEach(b => b.classList.remove('active'));
+  info.textContent = '';
+  drawFull();
 }
 
 function generate() {
@@ -157,6 +250,9 @@ function generate() {
   widthInput.value = W;
   heightInput.value = H;
   blocksInput.value = N;
+
+  mapW = W;
+  mapH = H;
 
   if (N === 1) {
     const dpr = window.devicePixelRatio || 1;
@@ -170,6 +266,11 @@ function generate() {
     ctx.strokeStyle = '#000';
     ctx.lineWidth = LINE_W;
     ctx.strokeRect(PAD, PAD, W, H);
+    currentCells = [];
+    cellColors = [];
+    adjList = [];
+    selectedColor = null;
+    colorBtns.forEach(b => b.classList.remove('active'));
     info.textContent = '1 個區塊 — 列印後即可手動著色';
     return;
   }
@@ -187,15 +288,40 @@ function generate() {
   }
 
   const cells = computeCells(seeds, W, H);
-  drawMap(cells, W, H);
+
+  const edgeToCells = new Map();
+  for (let i = 0; i < cells.length; i++) {
+    for (let j = 0; j < cells[i].length; j++) {
+      const a = cells[i][j], b = cells[i][(j + 1) % cells[i].length];
+      const key = edgeKey(a, b);
+      if (!edgeToCells.has(key)) edgeToCells.set(key, []);
+      edgeToCells.get(key).push(i);
+    }
+  }
+
+  adjList = Array.from({ length: cells.length }, () => new Set());
+  for (const indices of edgeToCells.values()) {
+    if (indices.length === 2) {
+      adjList[indices[0]].add(indices[1]);
+      adjList[indices[1]].add(indices[0]);
+    }
+  }
+
+  currentCells = cells;
+  cellColors = new Array(cells.length).fill(null);
+  selectedColor = null;
+  colorBtns.forEach(b => b.classList.remove('active'));
+  drawFull();
 
   const count = cells.length;
-  if (count < N) {
-    info.textContent = `已產生 ${count} 個區塊（可再按一次重新產生，或減少區塊數）`;
-  } else {
-    info.textContent = `${count} 個區塊 — 列印後即可手動著色`;
-  }
+  info.textContent = count < N
+    ? `已產生 ${count} 個區塊（可再按一次重新產生，或減少區塊數）`
+    : `${count} 個區塊 — 選擇顏色後點擊區塊著色`;
 }
 
+canvas.addEventListener('click', handleCanvasClick);
+colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)));
+resetBtn.addEventListener('click', resetColors);
 generateBtn.addEventListener('click', generate);
+
 generate();

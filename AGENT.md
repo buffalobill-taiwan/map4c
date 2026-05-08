@@ -22,3 +22,6 @@ python3 -m http.server 8081
 - 最小區塊面積: `面積 × 0.3 / N`，低於 300px² 時提示
 - 使用 `devicePixelRatio` 處理 Retina 顯示
 - 邊界去重使用浮點數四捨五入 key + Set
+- 著色使用 `seededRandom(edgeKey)` 確保曲線跨重繪一致
+- 鄰接圖透過邊緣去重階段的 `edgeToCells` Map 建立
+- 點擊偵測使用 `ctx.isPointInPath()`
