@@ -1,0 +1,24 @@
+# 開發筆記
+
+## 本機預覽
+
+```bash
+python3 -m http.server 8081
+```
+
+或直接於瀏覽器開啟 `index.html`（無需 server）。
+
+## 專案資訊
+
+- **名稱**: 四色定理教學地圖產生器
+- **技術**: 純 HTML + CSS + JS（無框架、無依賴）
+- **核心**: Voronoi 分割（半平面裁剪法）+ Canvas 繪圖
+- **檔案**: `index.html` / `style.css` / `script.js`
+
+## 實作細節
+
+- 種子最小間距: `√(面積 × 0.35 / N)`
+- 曲線偏移量: `min(邊長 × 0.22, 30px)`
+- 最小區塊面積: `面積 × 0.3 / N`，低於 300px² 時提示
+- 使用 `devicePixelRatio` 處理 Retina 顯示
+- 邊界去重使用浮點數四捨五入 key + Set
