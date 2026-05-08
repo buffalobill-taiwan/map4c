@@ -118,6 +118,36 @@ function isOnBoundary(a, b, W, H) {
   return onTop || onBottom || onLeft || onRight;
 }
 
+function traceCellPath(i) {
+  const poly = currentCells[i];
+  ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
+
+  for (let j = 0; j < poly.length; j++) {
+    const a = poly[j];
+    const b = poly[(j + 1) % poly.length];
+    const bound = isOnBoundary(a, b, mapW, mapH);
+
+    if (bound) {
+      ctx.lineTo(b.x + PAD, b.y + PAD);
+    } else {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const edgeLen = len(sub(b, a));
+      const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
+      if (maxOff > 2) {
+        const nx = -dy / edgeLen, ny = dx / edgeLen;
+        const r = seededRandom(edgeKey(a, b));
+        const off = (r * 2 - 1) * maxOff;
+        const cx = clamp((a.x + b.x) / 2 + nx * off, 0, mapW) + PAD;
+        const cy = clamp((a.y + b.y) / 2 + ny * off, 0, mapH) + PAD;
+        ctx.quadraticCurveTo(cx, cy, b.x + PAD, b.y + PAD);
+      } else {
+        ctx.lineTo(b.x + PAD, b.y + PAD);
+      }
+    }
+  }
+  ctx.closePath();
+}
+
 function drawEdge(a, b, bound) {
   ctx.beginPath();
   ctx.moveTo(a.x + PAD, a.y + PAD);
@@ -157,12 +187,7 @@ function drawFull() {
     if (cellColors[i]) {
       ctx.fillStyle = COLOR_MAP[cellColors[i]];
       ctx.beginPath();
-      const poly = currentCells[i];
-      ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
-      for (let j = 1; j < poly.length; j++) {
-        ctx.lineTo(poly[j].x + PAD, poly[j].y + PAD);
-      }
-      ctx.closePath();
+      traceCellPath(i);
       ctx.fill();
     }
   }
@@ -198,12 +223,7 @@ function handleCanvasClick(e) {
 
   for (let i = 0; i < currentCells.length; i++) {
     ctx.beginPath();
-    const poly = currentCells[i];
-    ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
-    for (let j = 1; j < poly.length; j++) {
-      ctx.lineTo(poly[j].x + PAD, poly[j].y + PAD);
-    }
-    ctx.closePath();
+    traceCellPath(i);
 
     if (ctx.isPointInPath(mx, my)) {
       if (cellColors[i] === colorName) return;
