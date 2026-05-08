@@ -118,6 +118,30 @@ function isOnBoundary(a, b, W, H) {
   return onTop || onBottom || onLeft || onRight;
 }
 
+function getEdgeControl(a, b) {
+  const key = edgeKey(a, b);
+  const ka = `${Math.round(a.x * 1000)},${Math.round(a.y * 1000)}`;
+  const kb = `${Math.round(b.x * 1000)},${Math.round(b.y * 1000)}`;
+  const from = ka < kb ? a : b;
+  const to = ka < kb ? b : a;
+
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const edgeLen = Math.sqrt(dx * dx + dy * dy);
+  const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
+  if (maxOff <= 2) return null;
+
+  const nx = -dy / edgeLen;
+  const ny = dx / edgeLen;
+  const r = seededRandom(key);
+  const off = (r * 2 - 1) * maxOff;
+
+  return {
+    cx: clamp((from.x + to.x) / 2 + nx * off, 0, mapW),
+    cy: clamp((from.y + to.y) / 2 + ny * off, 0, mapH)
+  };
+}
+
 function traceCellPath(i) {
   const poly = currentCells[i];
   ctx.moveTo(poly[0].x + PAD, poly[0].y + PAD);
@@ -130,16 +154,9 @@ function traceCellPath(i) {
     if (bound) {
       ctx.lineTo(b.x + PAD, b.y + PAD);
     } else {
-      const dx = b.x - a.x, dy = b.y - a.y;
-      const edgeLen = len(sub(b, a));
-      const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
-      if (maxOff > 2) {
-        const nx = -dy / edgeLen, ny = dx / edgeLen;
-        const r = seededRandom(edgeKey(a, b));
-        const off = (r * 2 - 1) * maxOff;
-        const cx = clamp((a.x + b.x) / 2 + nx * off, 0, mapW) + PAD;
-        const cy = clamp((a.y + b.y) / 2 + ny * off, 0, mapH) + PAD;
-        ctx.quadraticCurveTo(cx, cy, b.x + PAD, b.y + PAD);
+      const cp = getEdgeControl(a, b);
+      if (cp) {
+        ctx.quadraticCurveTo(cp.cx + PAD, cp.cy + PAD, b.x + PAD, b.y + PAD);
       } else {
         ctx.lineTo(b.x + PAD, b.y + PAD);
       }
@@ -155,16 +172,9 @@ function drawEdge(a, b, bound) {
   if (bound) {
     ctx.lineTo(b.x + PAD, b.y + PAD);
   } else {
-    const dx = b.x - a.x, dy = b.y - a.y;
-    const edgeLen = len(sub(b, a));
-    const maxOff = Math.min(edgeLen * CURVE_FACTOR, 30);
-    if (maxOff > 2) {
-      const nx = -dy / edgeLen, ny = dx / edgeLen;
-      const r = seededRandom(edgeKey(a, b));
-      const off = (r * 2 - 1) * maxOff;
-      const cx = clamp((a.x + b.x) / 2 + nx * off, 0, mapW) + PAD;
-      const cy = clamp((a.y + b.y) / 2 + ny * off, 0, mapH) + PAD;
-      ctx.quadraticCurveTo(cx, cy, b.x + PAD, b.y + PAD);
+    const cp = getEdgeControl(a, b);
+    if (cp) {
+      ctx.quadraticCurveTo(cp.cx + PAD, cp.cy + PAD, b.x + PAD, b.y + PAD);
     } else {
       ctx.lineTo(b.x + PAD, b.y + PAD);
     }
