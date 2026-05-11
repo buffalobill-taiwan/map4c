@@ -25,3 +25,6 @@ python3 -m http.server 8081
 - 著色使用 `seededRandom(edgeKey)` 確保曲線跨重繪一致
 - 鄰接圖透過邊緣去重階段的 `edgeToCells` Map 建立
 - 點擊偵測使用 `ctx.isPointInPath()`
+- hover 預覽使用 `globalAlpha = 0.3` 半透明疊加
+- 滑鼠滾輪切換顏色：上滾前一色、下滾後一色
+- 衝突檢測遍歷 `adjList[i]`，若相鄰同色則拒絕著色並顯示 `not-allowed` 游標
