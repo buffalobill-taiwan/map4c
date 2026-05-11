@@ -319,10 +319,8 @@ function undo() {
   if (undoStack.length === 0) return;
   cellColors = undoStack.pop();
   undoBtn.disabled = undoStack.length === 0;
-  selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';
-  colorBtns.forEach(b => b.classList.remove('active'));
   info.textContent = '';
   drawFull();
 }
