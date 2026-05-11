@@ -18,6 +18,7 @@ let currentCells = [];
 let cellColors = [];
 let adjList = [];
 let selectedColor = null;
+let hoveredCell = null;
 let mapW = 0, mapH = 0;
 
 function pt(x, y) { return { x, y }; }
@@ -202,6 +203,15 @@ function drawFull() {
     }
   }
 
+  if (hoveredCell !== null && selectedColor !== null) {
+    ctx.fillStyle = COLOR_MAP[COLORS[selectedColor]];
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath();
+    traceCellPath(hoveredCell);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
   ctx.strokeStyle = '#000';
   ctx.lineWidth = LINE_W;
   ctx.lineCap = 'round';
@@ -231,42 +241,80 @@ function handleCanvasClick(e) {
 
   const colorName = COLORS[selectedColor];
 
+  const hit = cellAtPoint(mx, my);
+  if (hit === null) return;
+
+  if (cellColors[hit] === colorName) return;
+
+  let conflict = false;
+  for (const n of adjList[hit]) {
+    if (cellColors[n] === colorName) { conflict = true; break; }
+  }
+
+  if (conflict) {
+    info.textContent = '⚠ 相鄰區塊已有相同顏色，無法著色';
+    return;
+  }
+
+  cellColors[hit] = colorName;
+  info.textContent = '';
+  drawFull();
+}
+
+function cellAtPoint(mx, my) {
   for (let i = 0; i < currentCells.length; i++) {
     ctx.beginPath();
     traceCellPath(i);
+    if (ctx.isPointInPath(mx, my)) return i;
+  }
+  return null;
+}
 
-    if (ctx.isPointInPath(mx, my)) {
-      if (cellColors[i] === colorName) return;
+function handleMouseMove(e) {
+  if (currentCells.length === 0) return;
 
+  const rect = canvas.getBoundingClientRect();
+  const sx = (mapW + PAD * 2) / rect.width;
+  const sy = (mapH + PAD * 2) / rect.height;
+  const mx = (e.clientX - rect.left) * sx;
+  const my = (e.clientY - rect.top) * sy;
+
+  const hit = cellAtPoint(mx, my);
+
+  if (hit !== hoveredCell) {
+    hoveredCell = hit;
+    drawFull();
+  }
+
+  if (selectedColor !== null && hit !== null) {
+    const colorName = COLORS[selectedColor];
+    if (cellColors[hit] === colorName) {
+      canvas.style.cursor = '';
+    } else {
       let conflict = false;
-      for (const n of adjList[i]) {
-        if (cellColors[n] === colorName) {
-          conflict = true;
-          break;
-        }
+      for (const n of adjList[hit]) {
+        if (cellColors[n] === colorName) { conflict = true; break; }
       }
-
-      if (conflict) {
-        info.textContent = '⚠ 相鄰區塊已有相同顏色，無法著色';
-        return;
-      }
-
-      cellColors[i] = colorName;
-      info.textContent = '';
-      drawFull();
-      return;
+      canvas.style.cursor = conflict ? 'not-allowed' : 'pointer';
     }
+  } else {
+    canvas.style.cursor = '';
   }
 }
 
 function selectColor(idx) {
   selectedColor = selectedColor === idx ? null : idx;
   colorBtns.forEach((btn, i) => btn.classList.toggle('active', i === selectedColor));
+  if (hoveredCell !== null) {
+    drawFull();
+  }
 }
 
 function resetColors() {
   cellColors.fill(null);
   selectedColor = null;
+  hoveredCell = null;
+  canvas.style.cursor = '';
   colorBtns.forEach(b => b.classList.remove('active'));
   info.textContent = '';
   drawFull();
@@ -300,6 +348,8 @@ function generate() {
     cellColors = [];
     adjList = [];
     selectedColor = null;
+    hoveredCell = null;
+    canvas.style.cursor = '';
     colorBtns.forEach(b => b.classList.remove('active'));
     info.textContent = '1 個區塊 — 列印後即可手動著色';
     return;
@@ -340,6 +390,8 @@ function generate() {
   currentCells = cells;
   cellColors = new Array(cells.length).fill(null);
   selectedColor = null;
+  hoveredCell = null;
+  canvas.style.cursor = '';
   colorBtns.forEach(b => b.classList.remove('active'));
   drawFull();
 
@@ -350,6 +402,14 @@ function generate() {
 }
 
 canvas.addEventListener('click', handleCanvasClick);
+canvas.addEventListener('mousemove', handleMouseMove);
+canvas.addEventListener('mouseleave', () => {
+  if (hoveredCell !== null) {
+    hoveredCell = null;
+    canvas.style.cursor = '';
+    drawFull();
+  }
+});
 colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)));
 resetBtn.addEventListener('click', resetColors);
 generateBtn.addEventListener('click', generate);
