@@ -1,5 +1,9 @@
 # 開發筆記
 
+## 流程守則
+
+- **每次 push 前**必須更新 README.md 與 AGENT.md
+
 ## 本機預覽
 
 ```bash
@@ -28,3 +32,4 @@ python3 -m http.server 8081
 - hover 預覽使用 `globalAlpha = 0.3` 半透明疊加
 - 滑鼠滾輪切換顏色：上滾前一色、下滾後一色
 - 衝突檢測遍歷 `adjList[i]`，若相鄰同色則拒絕著色並顯示 `not-allowed` 游標
+- 上一步功能：每次著色成功前 `push(cellColors.slice())`，undo 時 `pop()` 還原，保留選色

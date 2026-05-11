@@ -21,6 +21,9 @@ let adjList = [];
 let selectedColor = null;
 let hoveredCell = null;
 let undoStack = [];
+let celebrated = false;
+let particles = [];
+let confettiAnimId = null;
 let mapW = 0, mapH = 0;
 
 function pt(x, y) { return { x, y }; }
@@ -237,6 +240,19 @@ function drawFull() {
       drawEdge(a, b, isOnBoundary(a, b, mapW, mapH));
     }
   }
+
+  if (particles.length > 0) {
+    for (const p of particles) {
+      ctx.globalAlpha = p.alpha;
+      ctx.fillStyle = p.color;
+      ctx.save();
+      ctx.translate(p.x + PAD, p.y + PAD);
+      ctx.rotate(p.rot);
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+  }
 }
 
 function handleCanvasClick(e) {
@@ -272,6 +288,7 @@ function handleCanvasClick(e) {
   cellColors[hit] = colorName;
   info.textContent = '';
   drawFull();
+  checkCompletion();
 }
 
 function cellAtPoint(mx, my) {
@@ -374,8 +391,10 @@ function generate() {
     adjList = [];
     undoStack = [];
     undoBtn.disabled = true;
-  hoveredCell = null;
-  canvas.style.cursor = '';
+    celebrated = false;
+    selectedColor = null;
+    hoveredCell = null;
+    canvas.style.cursor = '';
     info.textContent = '1 個區塊 — 列印後即可手動著色';
     return;
   }
@@ -416,6 +435,7 @@ function generate() {
   cellColors = new Array(cells.length).fill(null);
   undoStack = [];
   undoBtn.disabled = true;
+  celebrated = false;
   selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';
@@ -426,6 +446,91 @@ function generate() {
   info.textContent = count < N
     ? `已產生 ${count} 個區塊（可再按一次重新產生，或減少區塊數）`
     : `${count} 個區塊 — 選擇顏色後點擊區塊著色`;
+}
+
+function checkCompletion() {
+  if (celebrated) return;
+  for (const c of cellColors) {
+    if (!c) return;
+  }
+  celebrated = true;
+  playFanfare();
+  startConfetti();
+}
+
+function playFanfare() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 587.33, 659.25, 783.99];
+    const times = [0, 0.12, 0.24, 0.44];
+    notes.forEach((freq, i) => {
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ac.currentTime + times[i]);
+      gain.gain.linearRampToValueAtTime(0.25, ac.currentTime + times[i] + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + times[i] + 0.2);
+      osc.connect(gain);
+      gain.connect(ac.destination);
+      osc.start(ac.currentTime + times[i]);
+      osc.stop(ac.currentTime + times[i] + 0.2);
+    });
+    setTimeout(() => ac.close(), 1000);
+  } catch (_) {}
+}
+
+function cellCenter(i) {
+  const poly = currentCells[i];
+  let cx = 0, cy = 0;
+  for (const p of poly) { cx += p.x; cy += p.y; }
+  return { x: cx / poly.length, y: cy / poly.length };
+}
+
+function startConfetti() {
+  particles = [];
+  const confettiColors = ['#e74c3c', '#3498db', '#27ae60', '#f1c40f'];
+  for (let i = 0; i < currentCells.length; i++) {
+    if (!cellColors[i]) continue;
+    const c = cellCenter(i);
+    const count = 5 + Math.floor(Math.random() * 6);
+    for (let j = 0; j < count; j++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 2 + Math.random() * 5;
+      particles.push({
+        x: c.x, y: c.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 2,
+        size: 4 + Math.random() * 5,
+        color: confettiColors[Math.floor(Math.random() * 4)],
+        alpha: 1,
+        rot: Math.random() * Math.PI * 2,
+        rotV: (Math.random() - 0.5) * 0.3
+      });
+    }
+  }
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  updateConfetti();
+}
+
+function updateConfetti() {
+  let alive = false;
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.1;
+    p.rot += p.rotV;
+    p.alpha -= 0.008;
+    if (p.alpha > 0) alive = true;
+  }
+  if (alive) {
+    drawFull();
+    confettiAnimId = requestAnimationFrame(updateConfetti);
+  } else {
+    particles = [];
+    drawFull();
+    confettiAnimId = null;
+  }
 }
 
 canvas.addEventListener('click', handleCanvasClick);
