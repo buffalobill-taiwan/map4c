@@ -5,6 +5,7 @@ const heightInput = document.getElementById('heightInput');
 const blocksInput = document.getElementById('blocksInput');
 const generateBtn = document.getElementById('generateBtn');
 const resetBtn = document.getElementById('resetBtn');
+const undoBtn = document.getElementById('undoBtn');
 const info = document.getElementById('info');
 const colorBtns = document.querySelectorAll('.color-btn');
 
@@ -19,6 +20,7 @@ let cellColors = [];
 let adjList = [];
 let selectedColor = null;
 let hoveredCell = null;
+let undoStack = [];
 let mapW = 0, mapH = 0;
 
 function pt(x, y) { return { x, y }; }
@@ -263,6 +265,10 @@ function handleCanvasClick(e) {
     return;
   }
 
+  undoStack.push(cellColors.slice());
+  if (undoStack.length > 50) undoStack.shift();
+  undoBtn.disabled = false;
+
   cellColors[hit] = colorName;
   info.textContent = '';
   drawFull();
@@ -309,6 +315,18 @@ function handleMouseMove(e) {
   }
 }
 
+function undo() {
+  if (undoStack.length === 0) return;
+  cellColors = undoStack.pop();
+  undoBtn.disabled = undoStack.length === 0;
+  selectedColor = null;
+  hoveredCell = null;
+  canvas.style.cursor = '';
+  colorBtns.forEach(b => b.classList.remove('active'));
+  info.textContent = '';
+  drawFull();
+}
+
 function selectColor(idx) {
   selectedColor = selectedColor === idx ? null : idx;
   colorBtns.forEach((btn, i) => btn.classList.toggle('active', i === selectedColor));
@@ -319,6 +337,8 @@ function selectColor(idx) {
 
 function resetColors() {
   cellColors.fill(null);
+  undoStack = [];
+  undoBtn.disabled = true;
   selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';
@@ -354,6 +374,8 @@ function generate() {
     currentCells = [];
     cellColors = [];
     adjList = [];
+    undoStack = [];
+    undoBtn.disabled = true;
     selectedColor = null;
     hoveredCell = null;
     canvas.style.cursor = '';
@@ -396,6 +418,8 @@ function generate() {
 
   currentCells = cells;
   cellColors = new Array(cells.length).fill(null);
+  undoStack = [];
+  undoBtn.disabled = true;
   selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';
@@ -429,6 +453,7 @@ canvas.addEventListener('wheel', (e) => {
 }, { passive: false });
 colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)));
 resetBtn.addEventListener('click', resetColors);
+undoBtn.addEventListener('click', undo);
 generateBtn.addEventListener('click', generate);
 
 generate();

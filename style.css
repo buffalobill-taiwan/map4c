@@ -126,6 +126,31 @@ button:hover {
   background: #ddd;
 }
 
+#undoBtn {
+  width: 100%;
+  padding: 8px;
+  font-size: 13px;
+  background: #eee;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 6px;
+}
+
+#undoBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#undoBtn:disabled:hover {
+  background: #eee;
+}
+
+#undoBtn:hover:not(:disabled) {
+  background: #ddd;
+}
+
 .info {
   margin-top: 12px;
   font-size: 13px;
