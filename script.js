@@ -376,10 +376,8 @@ function generate() {
     adjList = [];
     undoStack = [];
     undoBtn.disabled = true;
-    selectedColor = null;
-    hoveredCell = null;
-    canvas.style.cursor = '';
-    colorBtns.forEach(b => b.classList.remove('active'));
+  hoveredCell = null;
+  canvas.style.cursor = '';
     info.textContent = '1 個區塊 — 列印後即可手動著色';
     return;
   }
