@@ -417,6 +417,16 @@ canvas.addEventListener('mouseleave', () => {
     drawFull();
   }
 });
+canvas.addEventListener('wheel', (e) => {
+  if (currentCells.length === 0) return;
+  e.preventDefault();
+  if (selectedColor === null) {
+    selectColor(e.deltaY < 0 ? 3 : 0);
+  } else {
+    const dir = e.deltaY < 0 ? -1 : 1;
+    selectColor((selectedColor + dir + 4) % 4);
+  }
+}, { passive: false });
 colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)));
 resetBtn.addEventListener('click', resetColors);
 generateBtn.addEventListener('click', generate);
