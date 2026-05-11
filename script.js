@@ -203,13 +203,20 @@ function drawFull() {
     }
   }
 
-  if (hoveredCell !== null && selectedColor !== null) {
-    ctx.fillStyle = COLOR_MAP[COLORS[selectedColor]];
-    ctx.globalAlpha = 0.3;
-    ctx.beginPath();
-    traceCellPath(hoveredCell);
-    ctx.fill();
-    ctx.globalAlpha = 1;
+  if (hoveredCell !== null && selectedColor !== null && cellColors[hoveredCell] !== COLORS[selectedColor]) {
+    const cn = COLORS[selectedColor];
+    let conflict = false;
+    for (const n of adjList[hoveredCell]) {
+      if (cellColors[n] === cn) { conflict = true; break; }
+    }
+    if (!conflict) {
+      ctx.fillStyle = COLOR_MAP[cn];
+      ctx.globalAlpha = 0.3;
+      ctx.beginPath();
+      traceCellPath(hoveredCell);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   }
 
   ctx.strokeStyle = '#000';
