@@ -32,6 +32,7 @@ python3 -m http.server 8081
 - hover 預覽使用 `globalAlpha = 0.3` 半透明疊加
 - 滑鼠滾輪切換顏色：上滾前一色、下滾後一色
 - 衝突檢測遍歷 `adjList[i]`，若相鄰同色則拒絕著色並顯示 `not-allowed` 游標
+- 取消色（橡皮擦）：`selectedColor === 4` 時點擊已著色區塊設回 null，跳過衝突檢查
 - 上一步功能：每次著色成功前 `push(cellColors.slice())`，undo 時 `pop()` 還原，保留選色
 - 完成慶祝：`checkCompletion()` 檢查 `cellColors` 全部非 null，觸發撒花 + Web Audio 上行音階
   - 撒花粒子：從各區塊中心隨機噴發，重力加速 + 旋轉 + 淡出，`requestAnimationFrame` 驅動
