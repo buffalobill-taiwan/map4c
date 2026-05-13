@@ -110,6 +110,23 @@ button:hover {
   border-color: #222;
 }
 
+.eraser-btn {
+  font-size: 20px;
+  line-height: 1;
+  color: #999;
+  background: #fff;
+  border-color: #ccc;
+}
+
+.eraser-btn:hover {
+  border-color: #999;
+}
+
+.eraser-btn.active {
+  border-color: #222;
+  color: #333;
+}
+
 #resetBtn {
   width: 100%;
   padding: 8px;

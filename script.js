@@ -224,6 +224,15 @@ function drawFull() {
     }
   }
 
+  if (hoveredCell !== null && selectedColor === 4 && cellColors[hoveredCell] !== null) {
+    ctx.fillStyle = '#fff';
+    ctx.globalAlpha = 0.35;
+    ctx.beginPath();
+    traceCellPath(hoveredCell);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
   ctx.strokeStyle = '#000';
   ctx.lineWidth = LINE_W;
   ctx.lineCap = 'round';
@@ -264,10 +273,21 @@ function handleCanvasClick(e) {
   const mx = (e.clientX - rect.left) * sx;
   const my = (e.clientY - rect.top) * sy;
 
-  const colorName = COLORS[selectedColor];
-
   const hit = cellAtPoint(mx, my);
   if (hit === null) return;
+
+  if (selectedColor === 4) {
+    if (cellColors[hit] === null) return;
+    undoStack.push(cellColors.slice());
+    if (undoStack.length > 50) undoStack.shift();
+    undoBtn.disabled = false;
+    cellColors[hit] = null;
+    info.textContent = '';
+    drawFull();
+    return;
+  }
+
+  const colorName = COLORS[selectedColor];
 
   if (cellColors[hit] === colorName) return;
 
@@ -317,15 +337,19 @@ function handleMouseMove(e) {
   }
 
   if (selectedColor !== null && hit !== null) {
-    const colorName = COLORS[selectedColor];
-    if (cellColors[hit] === colorName) {
-      canvas.style.cursor = '';
+    if (selectedColor === 4) {
+      canvas.style.cursor = cellColors[hit] !== null ? 'pointer' : '';
     } else {
-      let conflict = false;
-      for (const n of adjList[hit]) {
-        if (cellColors[n] === colorName) { conflict = true; break; }
+      const colorName = COLORS[selectedColor];
+      if (cellColors[hit] === colorName) {
+        canvas.style.cursor = '';
+      } else {
+        let conflict = false;
+        for (const n of adjList[hit]) {
+          if (cellColors[n] === colorName) { conflict = true; break; }
+        }
+        canvas.style.cursor = conflict ? 'not-allowed' : 'pointer';
       }
-      canvas.style.cursor = conflict ? 'not-allowed' : 'pointer';
     }
   } else {
     canvas.style.cursor = '';
@@ -546,10 +570,10 @@ canvas.addEventListener('wheel', (e) => {
   if (currentCells.length === 0) return;
   e.preventDefault();
   if (selectedColor === null) {
-    selectColor(e.deltaY < 0 ? 3 : 0);
+    selectColor(e.deltaY < 0 ? 4 : 0);
   } else {
     const dir = e.deltaY < 0 ? -1 : 1;
-    selectColor((selectedColor + dir + 4) % 4);
+    selectColor((selectedColor + dir + 5) % 5);
   }
 }, { passive: false });
 colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)));
