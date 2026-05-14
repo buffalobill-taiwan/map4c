@@ -567,7 +567,7 @@ canvas.addEventListener('mouseleave', () => {
     drawFull();
   }
 });
-canvas.addEventListener('wheel', (e) => {
+document.addEventListener('wheel', (e) => {
   if (currentCells.length === 0) return;
   e.preventDefault();
   if (selectedColor === null) {
