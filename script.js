@@ -465,6 +465,7 @@ function generate() {
   canvas.style.cursor = '';
   colorBtns.forEach(b => b.classList.remove('active'));
   drawFull();
+  selectColor(0);
 
   const count = cells.length;
   info.textContent = count < N
