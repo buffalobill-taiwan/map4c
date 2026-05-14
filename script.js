@@ -336,21 +336,21 @@ function handleMouseMove(e) {
     drawFull();
   }
 
+  updateCursor(hit);
+}
+
+function updateCursor(hit) {
   if (selectedColor !== null && hit !== null) {
     if (selectedColor === 4) {
       canvas.style.cursor = cellColors[hit] !== null ? 'pointer' : '';
-    } else {
-      const colorName = COLORS[selectedColor];
-      if (cellColors[hit] === colorName) {
-        canvas.style.cursor = '';
-      } else {
-        let conflict = false;
-        for (const n of adjList[hit]) {
-          if (cellColors[n] === colorName) { conflict = true; break; }
-        }
-        canvas.style.cursor = conflict ? 'not-allowed' : 'pointer';
-      }
+      return;
     }
+    const cn = COLORS[selectedColor];
+    if (cellColors[hit] === cn) { canvas.style.cursor = ''; return; }
+    for (const n of adjList[hit]) {
+      if (cellColors[n] === cn) { canvas.style.cursor = 'not-allowed'; return; }
+    }
+    canvas.style.cursor = 'pointer';
   } else {
     canvas.style.cursor = '';
   }
@@ -370,6 +370,7 @@ function selectColor(idx) {
   selectedColor = selectedColor === idx ? null : idx;
   colorBtns.forEach((btn, i) => btn.classList.toggle('active', i === selectedColor));
   if (hoveredCell !== null) {
+    updateCursor(hoveredCell);
     drawFull();
   }
 }
