@@ -30,7 +30,8 @@ python3 -m http.server 8081
 - 鄰接圖透過邊緣去重階段的 `edgeToCells` Map 建立
 - 點擊偵測使用 `ctx.isPointInPath()`
 - hover 預覽使用 `globalAlpha = 0.3` 半透明疊加
-- 滑鼠滾輪切換顏色：上滾前一色、下滾後一色
+- 滑鼠滾輪切換顏色：`document.addEventListener('wheel', ...)` 整個頁面皆可切換，上滾前一色、下滾後一色
+- 預設選色：`generate()` 最後呼叫 `selectColor(0)`，預設選取紅色
 - 衝突檢測遍歷 `adjList[i]`，若相鄰同色則拒絕著色並顯示 `not-allowed` 游標
 - 取消色（橡皮擦）：`selectedColor === 4` 時點擊已著色區塊設回 null，跳過衝突檢查
 - 上一步功能：每次著色成功前 `push(cellColors.slice())`，undo 時 `pop()` 還原，保留選色
