@@ -412,9 +412,9 @@ function resetColors() {
   drawFull();
 }
 
-function findKempeChain(start, c1, c2) {
-  const visited = new Set([start]);
-  const stack = [start];
+function findKempeChain(starts, c1, c2) {
+  const visited = new Set(starts);
+  const stack = [...starts];
   while (stack.length) {
     const cur = stack.pop();
     for (const n of adjList[cur]) {
@@ -479,10 +479,10 @@ function autoColorNext() {
       for (const c1 of COLORS) {
         for (const c2 of COLORS) {
           if (c1 === c2) continue;
-          const u = [...adjList[target]].find(n => cellColors[n] === c1);
-          if (u === undefined) continue;
+          const starts = [...adjList[target]].filter(n => cellColors[n] === c1);
+          if (starts.length === 0) continue;
 
-          const chain = findKempeChain(u, c1, c2);
+          const chain = findKempeChain(starts, c1, c2);
 
           const conflicted = [...adjList[target]].some(n => {
             if (cellColors[n] === null) return false;
