@@ -7,6 +7,7 @@ const generateBtn = document.getElementById('generateBtn');
 const resetBtn = document.getElementById('resetBtn');
 const undoBtn = document.getElementById('undoBtn');
 const info = document.getElementById('info');
+const autoColorBtn = document.getElementById('autoColorBtn');
 const colorBtns = document.querySelectorAll('.color-btn');
 
 const PAD = 20;
@@ -25,6 +26,16 @@ let celebrated = false;
 let particles = [];
 let confettiAnimId = null;
 let mapW = 0, mapH = 0;
+let autoColoring = false;
+let autoColorTimer = null;
+let autoColorPhase = 'pick';
+let autoColorTarget = -1;
+let autoColorC1 = null;
+let autoColorC2 = null;
+let autoColorChain = [];
+let autoColorChainIdx = 0;
+let autoColorSwapPlan = [];
+let chainHighlight = null;
 
 function pt(x, y) { return { x, y }; }
 function sub(a, b) { return pt(a.x - b.x, a.y - b.y); }
@@ -233,6 +244,19 @@ function drawFull() {
     ctx.globalAlpha = 1;
   }
 
+  if (chainHighlight) {
+    ctx.save();
+    ctx.strokeStyle = '#ff6600';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([6, 4]);
+    for (const i of chainHighlight) {
+      ctx.beginPath();
+      traceCellPath(i);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   ctx.strokeStyle = '#000';
   ctx.lineWidth = LINE_W;
   ctx.lineCap = 'round';
@@ -265,7 +289,7 @@ function drawFull() {
 }
 
 function handleCanvasClick(e) {
-  if (selectedColor === null || currentCells.length === 0) return;
+  if (autoColoring || selectedColor === null || currentCells.length === 0) return;
 
   const rect = canvas.getBoundingClientRect();
   const sx = (mapW + PAD * 2) / rect.width;
@@ -321,7 +345,7 @@ function cellAtPoint(mx, my) {
 }
 
 function handleMouseMove(e) {
-  if (currentCells.length === 0) return;
+  if (autoColoring || currentCells.length === 0) return;
 
   const rect = canvas.getBoundingClientRect();
   const sx = (mapW + PAD * 2) / rect.width;
@@ -357,7 +381,7 @@ function updateCursor(hit) {
 }
 
 function undo() {
-  if (undoStack.length === 0) return;
+  if (autoColoring || undoStack.length === 0) return;
   cellColors = undoStack.pop();
   undoBtn.disabled = undoStack.length === 0;
   hoveredCell = null;
@@ -376,6 +400,7 @@ function selectColor(idx) {
 }
 
 function resetColors() {
+  stopAutoColor();
   cellColors.fill(null);
   undoStack = [];
   undoBtn.disabled = true;
@@ -387,7 +412,180 @@ function resetColors() {
   drawFull();
 }
 
+function findKempeChain(start, c1, c2) {
+  const visited = new Set([start]);
+  const stack = [start];
+  while (stack.length) {
+    const cur = stack.pop();
+    for (const n of adjList[cur]) {
+      if (!visited.has(n) && cellColors[n] !== null && (cellColors[n] === c1 || cellColors[n] === c2)) {
+        visited.add(n);
+        stack.push(n);
+      }
+    }
+  }
+  return visited;
+}
+
+function stopAutoColor() {
+  if (autoColorTimer !== null) {
+    clearTimeout(autoColorTimer);
+    autoColorTimer = null;
+  }
+  chainHighlight = null;
+  if (autoColoring) {
+    autoColorBtn.textContent = '自動著色';
+    drawFull();
+  }
+  autoColoring = false;
+  autoColorPhase = 'pick';
+}
+
+function autoColorNext() {
+  if (!autoColoring) return;
+
+  switch (autoColorPhase) {
+    case 'pick': {
+      let target = -1;
+      for (let i = 0; i < cellColors.length; i++) {
+        if (cellColors[i] === null) { target = i; break; }
+      }
+      if (target === -1) {
+        stopAutoColor();
+        info.textContent = '自動著色完成';
+        return;
+      }
+
+      autoColorTarget = target;
+
+      const used = new Set();
+      for (const n of adjList[target]) {
+        if (cellColors[n] !== null) used.add(cellColors[n]);
+      }
+
+      if (used.size < 4) {
+        for (const c of COLORS) {
+          if (!used.has(c)) {
+            cellColors[target] = c;
+            break;
+          }
+        }
+        drawFull();
+        autoColorTimer = setTimeout(autoColorNext, 200);
+        return;
+      }
+
+      let found = false;
+      for (const c1 of COLORS) {
+        for (const c2 of COLORS) {
+          if (c1 === c2) continue;
+          const u = [...adjList[target]].find(n => cellColors[n] === c1);
+          if (u === undefined) continue;
+
+          const chain = findKempeChain(u, c1, c2);
+
+          const conflicted = [...adjList[target]].some(n => {
+            if (cellColors[n] === null) return false;
+            const after = chain.has(n) ? (cellColors[n] === c1 ? c2 : c1) : cellColors[n];
+            return after === c1;
+          });
+
+          if (!conflicted) {
+            autoColorC1 = c1;
+            autoColorC2 = c2;
+            autoColorChain = [...chain];
+            autoColorSwapPlan = autoColorChain.map(idx => ({
+              idx,
+              newColor: cellColors[idx] === c1 ? c2 : c1
+            }));
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+
+      if (!found) {
+        cellColors[target] = COLORS[0];
+        drawFull();
+        autoColorTimer = setTimeout(autoColorNext, 200);
+        return;
+      }
+
+      autoColorPhase = 'show_chain';
+      chainHighlight = new Set(autoColorChain);
+      info.textContent = '發現 Kempe Chain（' + autoColorChain.length + ' 個區塊）';
+      drawFull();
+      autoColorTimer = setTimeout(autoColorNext, 400);
+      return;
+    }
+
+    case 'show_chain': {
+      autoColorPhase = 'swap_chain';
+      autoColorChainIdx = 0;
+      chainHighlight = null;
+      info.textContent = 'Kempe Chain 顏色交換中…';
+      drawFull();
+      autoColorTimer = setTimeout(autoColorNext, 200);
+      return;
+    }
+
+    case 'swap_chain': {
+      if (autoColorChainIdx < autoColorSwapPlan.length) {
+        const { idx, newColor } = autoColorSwapPlan[autoColorChainIdx];
+        cellColors[idx] = newColor;
+        drawFull();
+        autoColorChainIdx++;
+        if (autoColorChainIdx < autoColorSwapPlan.length) {
+          autoColorTimer = setTimeout(autoColorNext, 200);
+        } else {
+          autoColorPhase = 'color_target';
+          autoColorTimer = setTimeout(autoColorNext, 200);
+        }
+      }
+      return;
+    }
+
+    case 'color_target': {
+      cellColors[autoColorTarget] = autoColorC1;
+      info.textContent = '自動著色中…';
+      drawFull();
+      autoColorPhase = 'pick';
+      autoColorTimer = setTimeout(autoColorNext, 200);
+      return;
+    }
+  }
+}
+
+function autoColor() {
+  if (autoColoring) {
+    stopAutoColor();
+    info.textContent = '自動著色已中止';
+    return;
+  }
+
+  resetColors();
+
+  if (currentCells.length === 0) {
+    info.textContent = '請先產生地圖';
+    return;
+  }
+
+  autoColoring = true;
+  autoColorPhase = 'pick';
+  chainHighlight = null;
+  autoColorBtn.textContent = '中止';
+  selectedColor = null;
+  hoveredCell = null;
+  canvas.style.cursor = '';
+  colorBtns.forEach(b => b.classList.remove('active'));
+  info.textContent = '自動著色中…';
+  drawFull();
+  autoColorTimer = setTimeout(autoColorNext, 200);
+}
+
 function generate() {
+  stopAutoColor();
   let W = clamp(parseInt(widthInput.value) || 600, 50, 3000);
   let H = clamp(parseInt(heightInput.value) || 400, 50, 3000);
   let N = clamp(parseInt(blocksInput.value) || 1, 1, 500);
@@ -562,6 +760,7 @@ function updateConfetti() {
 canvas.addEventListener('click', handleCanvasClick);
 canvas.addEventListener('mousemove', handleMouseMove);
 canvas.addEventListener('mouseleave', () => {
+  if (autoColoring) return;
   if (hoveredCell !== null) {
     hoveredCell = null;
     canvas.style.cursor = '';
@@ -569,7 +768,7 @@ canvas.addEventListener('mouseleave', () => {
   }
 });
 document.addEventListener('wheel', (e) => {
-  if (currentCells.length === 0) return;
+  if (autoColoring || currentCells.length === 0) return;
   e.preventDefault();
   if (selectedColor === null) {
     selectColor(e.deltaY < 0 ? 4 : 0);
@@ -582,5 +781,6 @@ colorBtns.forEach((btn, i) => btn.addEventListener('click', () => selectColor(i)
 resetBtn.addEventListener('click', resetColors);
 undoBtn.addEventListener('click', undo);
 generateBtn.addEventListener('click', generate);
+autoColorBtn.addEventListener('click', autoColor);
 
 generate();
