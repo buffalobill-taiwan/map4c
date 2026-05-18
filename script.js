@@ -439,6 +439,13 @@ function stopAutoColor() {
   }
   autoColoring = false;
   autoColorPhase = 'pick';
+  setButtonsDisabled(false);
+}
+
+function setButtonsDisabled(disabled) {
+  generateBtn.disabled = disabled;
+  resetBtn.disabled = disabled;
+  undoBtn.disabled = disabled || undoStack.length === 0;
 }
 
 function autoColorNext() {
@@ -601,6 +608,7 @@ function autoColor() {
   autoColorPhase = 'pick';
   chainHighlight = null;
   autoColorBtn.textContent = '中止';
+  setButtonsDisabled(true);
   selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';

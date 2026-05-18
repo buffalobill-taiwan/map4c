@@ -77,6 +77,11 @@ button:hover {
   background: #444;
 }
 
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .color-picker {
   margin: 14px 0 6px;
 }
