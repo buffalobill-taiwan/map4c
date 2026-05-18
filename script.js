@@ -447,8 +447,21 @@ function autoColorNext() {
   switch (autoColorPhase) {
     case 'pick': {
       let target = -1;
+      let bestSat = -1;
+      let bestDeg = -1;
       for (let i = 0; i < cellColors.length; i++) {
-        if (cellColors[i] === null) { target = i; break; }
+        if (cellColors[i] !== null) continue;
+        const colors = new Set();
+        for (const n of adjList[i]) {
+          if (cellColors[n] !== null) colors.add(cellColors[n]);
+        }
+        const sat = colors.size;
+        const deg = adjList[i].size;
+        if (sat > bestSat || (sat === bestSat && deg > bestDeg)) {
+          bestSat = sat;
+          bestDeg = deg;
+          target = i;
+        }
       }
       if (target === -1) {
         stopAutoColor();
@@ -506,7 +519,20 @@ function autoColorNext() {
       }
 
       if (!found) {
-        cellColors[target] = COLORS[0];
+        let bestColor = COLORS[0];
+        let bestConflicts = Infinity;
+        for (const c of COLORS) {
+          let conflicts = 0;
+          for (const n of adjList[target]) {
+            if (cellColors[n] === c) conflicts++;
+          }
+          if (conflicts < bestConflicts) {
+            bestConflicts = conflicts;
+            bestColor = c;
+            if (bestConflicts === 0) break;
+          }
+        }
+        cellColors[target] = bestColor;
         drawFull();
         autoColorTimer = setTimeout(autoColorNext, 200);
         return;
