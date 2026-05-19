@@ -23,6 +23,7 @@ let selectedColor = null;
 let hoveredCell = null;
 let undoStack = [];
 let celebrated = false;
+let autoWasUsed = false;
 let particles = [];
 let confettiAnimId = null;
 let mapW = 0, mapH = 0;
@@ -605,6 +606,7 @@ function autoColor() {
   }
 
   autoColoring = true;
+  autoWasUsed = true;
   autoColorPhase = 'pick';
   chainHighlight = null;
   autoColorBtn.textContent = '中止';
@@ -649,6 +651,7 @@ function generate() {
     undoStack = [];
     undoBtn.disabled = true;
     celebrated = false;
+    autoWasUsed = false;
     selectedColor = null;
     hoveredCell = null;
     canvas.style.cursor = '';
@@ -693,6 +696,7 @@ function generate() {
   undoStack = [];
   undoBtn.disabled = true;
   celebrated = false;
+  autoWasUsed = false;
   selectedColor = null;
   hoveredCell = null;
   canvas.style.cursor = '';
@@ -707,7 +711,7 @@ function generate() {
 }
 
 function checkCompletion() {
-  if (celebrated) return;
+  if (celebrated || autoWasUsed) return;
   for (const c of cellColors) {
     if (!c) return;
   }
