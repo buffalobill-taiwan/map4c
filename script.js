@@ -309,6 +309,7 @@ function handleCanvasClick(e) {
     cellColors[hit] = null;
     info.textContent = '';
     drawFull();
+    updateCursor(hit);
     return;
   }
 
