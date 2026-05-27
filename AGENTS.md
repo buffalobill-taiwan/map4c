@@ -33,6 +33,8 @@ Push to `master` on `origin` → auto-deploys to GitHub Pages at `https://buffal
 - **Undo** — `push(cellColors.slice())` before each color change, `pop()` on undo (capped at 50)
 - **Scroll wheel** — `document.addEventListener('wheel', ...)` cycles colors globally (up=previous, down=next)
 - **Completion celebration** — all cells colored → `playFanfare()` (Web Audio triangle wave C5→D5→E5→G5, 120ms each) + confetti particles via `requestAnimationFrame`
+- **Eraser** — `selectedColor === 4`, click skips conflict check, sets cell to `null`; only affects colored cells (uncolored cells show `not-allowed` cursor)
+- **Hover overlay** — normal colors show 30% translucent fill on colorable cells; eraser shows 35% white overlay on colored cells only
 - **SeededRandom** — `hash(edgeKey + 'curve') % 10000 / 10000` for deterministic curve offsets across redraws
 
 ## Commit conventions

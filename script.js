@@ -220,7 +220,7 @@ function drawFull() {
     }
   }
 
-  if (hoveredCell !== null && selectedColor !== null && cellColors[hoveredCell] !== COLORS[selectedColor]) {
+  if (hoveredCell !== null && selectedColor !== null && selectedColor < 4 && cellColors[hoveredCell] !== COLORS[selectedColor]) {
     const cn = COLORS[selectedColor];
     let conflict = false;
     for (const n of adjList[hoveredCell]) {
@@ -367,7 +367,7 @@ function handleMouseMove(e) {
 function updateCursor(hit) {
   if (selectedColor !== null && hit !== null) {
     if (selectedColor === 4) {
-      canvas.style.cursor = cellColors[hit] !== null ? 'pointer' : '';
+      canvas.style.cursor = cellColors[hit] !== null ? 'pointer' : 'not-allowed';
       return;
     }
     const cn = COLORS[selectedColor];
