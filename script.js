@@ -292,11 +292,8 @@ function drawFull() {
 function handleCanvasClick(e) {
   if (autoColoring || selectedColor === null || currentCells.length === 0) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const sx = (mapW + PAD * 2) / rect.width;
-  const sy = (mapH + PAD * 2) / rect.height;
-  const mx = (e.clientX - rect.left) * sx;
-  const my = (e.clientY - rect.top) * sy;
+  const mx = e.offsetX;
+  const my = e.offsetY;
 
   const hit = cellAtPoint(mx, my);
   if (hit === null) return;
@@ -338,22 +335,22 @@ function handleCanvasClick(e) {
 }
 
 function cellAtPoint(mx, my) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   for (let i = 0; i < currentCells.length; i++) {
     ctx.beginPath();
     traceCellPath(i);
-    if (ctx.isPointInPath(mx, my)) return i;
+    if (ctx.isPointInPath(mx, my)) { ctx.restore(); return i; }
   }
+  ctx.restore();
   return null;
 }
 
 function handleMouseMove(e) {
   if (autoColoring || currentCells.length === 0) return;
 
-  const rect = canvas.getBoundingClientRect();
-  const sx = (mapW + PAD * 2) / rect.width;
-  const sy = (mapH + PAD * 2) / rect.height;
-  const mx = (e.clientX - rect.left) * sx;
-  const my = (e.clientY - rect.top) * sy;
+  const mx = e.offsetX;
+  const my = e.offsetY;
 
   const hit = cellAtPoint(mx, my);
 
